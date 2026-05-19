@@ -18,6 +18,8 @@ export default function CalendarPage() {
     eventsByDate, refreshEvents, currentMonth, navigateMonth,
     error, activeSource, setActiveSource, microsoftCalendarConnected
   } = useCalendarViewModel();
+  const safeEvents = Array.isArray(events) ? events : [];
+  const safeTodayEvents = Array.isArray(todayEvents) ? todayEvents : [];
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -26,9 +28,9 @@ export default function CalendarPage() {
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const hasBackToBack = todayEvents.length > 1 && todayEvents.some((event, idx) => {
-    if (idx === todayEvents.length - 1) return false;
-    const nextEvent = todayEvents[idx + 1];
+  const hasBackToBack = safeTodayEvents.length > 1 && safeTodayEvents.some((event, idx) => {
+    if (idx === safeTodayEvents.length - 1) return false;
+    const nextEvent = safeTodayEvents[idx + 1];
     const diffMins = (new Date(nextEvent.startTime).getTime() - new Date(event.endTime).getTime()) / 60000;
     return diffMins >= 0 && diffMins <= 5;
   });
@@ -209,13 +211,13 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              {todayEvents.length === 0 ? (
+              {safeTodayEvents.length === 0 ? (
                 <div className="text-center py-6">
                   <p className="text-muted text-sm">Your day is clear! 🎉</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {todayEvents.map(event => (
+                  {safeTodayEvents.map(event => (
                     <div key={event.id} className="bg-surface-2 border border-border rounded-lg p-3 relative overflow-hidden">
                       <div className={cn("absolute left-0 top-0 bottom-0 w-1", todayBarColor)} />
                       <div className="pl-2">
@@ -250,11 +252,11 @@ export default function CalendarPage() {
               <h3 className="font-bold text-text-primary mb-4">This Month</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-surface-2 rounded-lg p-3 text-center">
-                  <p className={cn("text-2xl font-bold", isMs ? "text-orange-500" : "text-primary")}>{events.length}</p>
+                  <p className={cn("text-2xl font-bold", isMs ? "text-orange-500" : "text-primary")}>{safeEvents.length}</p>
                   <p className="text-xs text-muted">Total Events</p>
                 </div>
                 <div className="bg-surface-2 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-text-primary">{todayEvents.length}</p>
+                  <p className="text-2xl font-bold text-text-primary">{safeTodayEvents.length}</p>
                   <p className="text-xs text-muted">Today</p>
                 </div>
               </div>

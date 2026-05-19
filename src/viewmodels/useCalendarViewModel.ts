@@ -13,6 +13,10 @@ function getMonthRange(date: Date) {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
+function normalizeEvents(value: unknown): CalendarEvent[] {
+  return Array.isArray(value) ? (value as CalendarEvent[]) : [];
+}
+
 export function useCalendarViewModel() {
   const { user } = useAuthStore();
   const { microsoftCalendarConnected } = useIntegrationStore();
@@ -32,8 +36,12 @@ export function useCalendarViewModel() {
     setIsLoading(true);
     setError(null);
     const res = await getEvents(start, end);
-    if (res.success && res.data) setGoogleEvents(res.data);
-    else if (res.error) setError(res.error.message);
+    if (res.success) {
+      setGoogleEvents(normalizeEvents(res.data));
+    } else {
+      setGoogleEvents([]);
+      if (res.error) setError(res.error.message);
+    }
     setIsLoading(false);
   }, [user]);
 
@@ -42,11 +50,12 @@ export function useCalendarViewModel() {
     setIsLoading(true);
     setError(null);
     const res = await getMicrosoftEvents(start, end);
-    if (res.success && res.data) {
-      setMicrosoftEvents(res.data);
+    if (res.success) {
+      setMicrosoftEvents(normalizeEvents(res.data));
       fetchedMsMonths.current.add(key);
-    } else if (res.error) {
-      setError(res.error.message);
+    } else {
+      setMicrosoftEvents([]);
+      if (res.error) setError(res.error.message);
     }
     setIsLoading(false);
   }, [user, microsoftCalendarConnected]);
@@ -63,11 +72,12 @@ export function useCalendarViewModel() {
     }
   }, [activeSource, dateRange, monthKey, fetchMicrosoftEvents, user]);
 
-  const events = activeSource === 'google' ? googleEvents : microsoftEvents;
+  const events = normalizeEvents(activeSource === 'google' ? googleEvents : microsoftEvents);
 
   const todayEvents = useMemo(() => {
+    const safeEvents = Array.isArray(events) ? events : [];
     const todayStr = new Date().toDateString();
-    return events.filter(e => new Date(e.startTime).toDateString() === todayStr);
+    return safeEvents.filter(e => new Date(e.startTime).toDateString() === todayStr);
   }, [events]);
 
   const upcomingEvents = useMemo(() => {

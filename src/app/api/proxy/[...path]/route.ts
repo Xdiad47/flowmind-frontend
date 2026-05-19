@@ -2,14 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const BACKEND_URL = (
+  process.env.API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  'http://localhost:8000'
+).replace(/\/+$/, '');
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || '';
 
 async function handleProxy(request: NextRequest, { params }: { params: { path: string[] } }) {
   const session = await getServerSession(authOptions);
   
   if (!session || !session.user) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
   const userId = (session.user as any).id;
@@ -24,8 +28,12 @@ async function handleProxy(request: NextRequest, { params }: { params: { path: s
   const isSSE = apiPath.includes('chat/stream');
 
   const headers = new Headers(request.headers);
-  headers.set('x-user-id', userId);
-  headers.set('x-internal-secret', INTERNAL_API_SECRET);
+  if (typeof userId === 'string' && userId.length > 0) {
+    headers.set('x-user-id', userId);
+  }
+  if (INTERNAL_API_SECRET) {
+    headers.set('x-internal-secret', INTERNAL_API_SECRET);
+  }
   if (accessToken) {
     headers.set('x-google-access-token', accessToken);
   }
@@ -55,6 +63,14 @@ async function handleProxy(request: NextRequest, { params }: { params: { path: s
 
     const response = await fetch(url, init);
     clearTimeout(timeout);
+
+    const parseJsonBody = async (): Promise<unknown> => {
+      try {
+        return await response.json();
+      } catch {
+        return null;
+      }
+    };
 
     // Build response headers
     const responseHeaders = new Headers();
@@ -96,14 +112,28 @@ async function handleProxy(request: NextRequest, { params }: { params: { path: s
       });
     }
 
-    return new NextResponse(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders,
-    });
+    const data = await parseJsonBody();
+
+    if (response.ok) {
+      return NextResponse.json(data, { status: 200 });
+    }
+
+    const fallbackMessage = response.statusText || 'Upstream request failed';
+    const upstreamError =
+      data && typeof data === 'object'
+        ? data
+        : { message: typeof data === 'string' ? data : fallbackMessage };
+
+    return NextResponse.json(upstreamError, { status: response.status });
   } catch (error) {
     console.error('Proxy error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json(
+      {
+        message: 'Proxy request failed',
+        error: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -113,4 +143,3 @@ export const PUT = handleProxy;
 export const PATCH = handleProxy;
 export const DELETE = handleProxy;
 export const OPTIONS = handleProxy;
-
