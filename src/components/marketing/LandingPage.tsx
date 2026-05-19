@@ -284,9 +284,9 @@ You had 2 conflicts — I moved them to the afternoon.</p>
           </div>
           
           <div className="flex gap-6 text-sm text-muted">
-            <Link href="#" className="hover:text-text-primary transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-text-primary transition-colors">Terms of Service</Link>
-            <Link href="#" className="hover:text-text-primary transition-colors">Contact</Link>
+            <Link href="/privacy" className="hover:text-text-primary transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-text-primary transition-colors">Terms of Service</Link>
+            <a href="mailto:mail2diadem@gmail.com" className="hover:text-text-primary transition-colors">Contact</a>
           </div>
         </div>
       </footer>
