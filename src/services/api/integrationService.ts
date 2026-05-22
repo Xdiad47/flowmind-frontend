@@ -2,6 +2,7 @@
 import { doc, getDoc, collection, query, orderBy, limit as firestoreLimit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { apiClient } from '../http/apiClient';
+import { API_BASE_URL } from '@/lib/constants';
 import type { User } from '@/models/User';
 import type { AgentAction } from '@/models/AgentAction';
 import type { ApiResponse, ApiError } from '@/models/ApiResponse';
@@ -31,8 +32,22 @@ export async function checkIntegrationStatus(userId: string): Promise<ApiRespons
 }
 
 export function connectMicrosoftIntegration(userId: string): void {
-  window.location.href = `http://localhost:8000/auth/microsoft/login?user_id=${encodeURIComponent(userId)}`;
+  if (!userId) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[FlowMind] connectMicrosoftIntegration called without a userId — aborting redirect.');
+    }
+    return;
+  }
+
+  const microsoftLoginUrl = `${API_BASE_URL}/auth/microsoft/login?user_id=${encodeURIComponent(userId)}`;
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[FlowMind] Microsoft OAuth redirect →', microsoftLoginUrl);
+  }
+
+  window.location.href = microsoftLoginUrl;
 }
+
 
 export async function revokeIntegration(integration: 'googleCalendar' | 'gmail' | 'microsoftCalendar' | 'outlookMail'): Promise<ApiResponse<void>> {
   try {

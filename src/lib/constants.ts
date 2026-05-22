@@ -1,4 +1,16 @@
 // src/lib/constants.ts
+
+/**
+ * Canonical backend base URL — reads from env vars, falls back to localhost for dev.
+ * Use this everywhere a direct backend URL is needed (e.g. OAuth redirects).
+ * Strip trailing slashes so callers can always safely append '/path'.
+ */
+export const API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.API_BASE_URL ??
+  'http://localhost:8000'
+).replace(/\/+$/, '');
+
 export const APP_NAME = 'FlowMind';
 export const APP_TAGLINE = 'Your AI Chief of Staff';
 export const APP_DESCRIPTION = 'Manage your calendar and inbox with natural language. Sign up, connect, and just talk.';
